@@ -11,8 +11,8 @@ import sqlite3
 import facebook
 import facebookinfo #file containing Facebook access token
 import requests
-from datetime import datetime #how to make a datetime into a weekday
-import calendar
+import datetime #how to make a datetime into a weekday
+
 
 CACHE_FNAME = "finalproject.json"
 
@@ -50,8 +50,7 @@ def get_facebook_info(user):
         f.write(json.dumps(CACHE_DICTION, indent = 2)) #indent for easier read
         f.close()
         return facebook_results
-
-information = get_facebook_info(fb_user) #printing the timeline data in finalproject.json
+information = get_facebook_info(fb_user) #timeline data in finalproject.json
 # print(information)
 
 
@@ -60,14 +59,35 @@ for post in information['data']:
     date = post['created_time']
     # print(date)
     match = re.match(r'(\d+\-\d{2}\-\d{2})', date)
-    print(match)
+    # print(match)
     if match:
         date1 = match.group(1)
         day_of_week = datetime.datetime.strptime(date1, '%Y-%m-%d').strftime('%A')
-        print(int(day_of_week))
+        # print(day_of_week)
 
 
+## Iterating through information and creating list to load into database
+lst = []
+lst1 = []
+for k,v in information.items():
+    #print(k,v)
+    for elem in v:
+        #print(type(elem))
+        #print(elem)
+        try:
+            for k,v in elem.items():
+            #print(type(k))
+            #print(type(v))
+                lst.append(v)
+        except:
+            pass
+        lst1.append(lst)
+print(lst1)
 
 
-# conn = sqlite3.connect('final_project.sqlite') #writing sqlite file
-# cur = conn.cursor()
+## Writing data into database
+conn = sqlite3.connect('finalproject.sqlite') #writing sqlite file
+cur = conn.cursor()
+
+cur.execute('DROP TABLE IF EXISTS Posts') #creating Posts table
+cur.execute('CREATE TABLE Posts (story TEXT PRIMARY KEY, created_time DATETIME, message TEXT)')
