@@ -12,6 +12,8 @@ import facebook
 import facebookinfo #file containing Facebook access token
 import requests
 import datetime #how to make a datetime into a weekday
+import plotly.plotly as py
+import plotly.graph_objs as go
 
 
 CACHE_FNAME = "finalproject.json"
@@ -50,12 +52,12 @@ def get_facebook_info(user):
         f.write(json.dumps(CACHE_DICTION, indent = 2)) #indent for easier read
         f.close()
         return facebook_results
-information = get_facebook_info(fb_user) #timeline data in finalproject.json
-# print(information)
+post_data = get_facebook_info(fb_user) #timeline data in finalproject.json
+# print(post_data)
 
 
 ## Finding the days the interactions from user timline took place
-for post in information['data']:
+def day_of_week(post):
     date = post['created_time']
     # print(date)
     match = re.match(r'(\d+\-\d{2}\-\d{2})', date)
@@ -64,25 +66,28 @@ for post in information['data']:
         date1 = match.group(1)
         day_of_week = datetime.datetime.strptime(date1, '%Y-%m-%d').strftime('%A')
         # print(day_of_week)
+    return day_of_week
 
 
-## Iterating through information and creating list to load into database
-lst = []
-lst1 = []
-for k,v in information.items():
-    #print(k,v)
-    for elem in v:
-        #print(type(elem))
-        #print(elem)
-        try:
-            for k,v in elem.items():
-            #print(type(k))
-            #print(type(v))
-                lst.append(v)
-        except:
-            pass
-        lst1.append(lst)
-print(lst1)
+## Counting the number of posts for each day of the week
+days_dict = {'Monday': 0, 'Tuesday': 0, 'Wednesday': 0, 'Thursday': 0, 'Friday': 0, 'Saturday': 0, 'Sunday': 0}
+for post in post_data['data']:
+    day = day_of_week(post)
+    if day == 'Monday':
+        days_dict['Monday'] += 1
+    if day == 'Tuesday':
+        days_dict['Tuesday'] += 1
+    if day == 'Wednesday':
+        days_dict['Wednesday'] += 1
+    if day == 'Thursday':
+        days_dict['Thursday'] += 1
+    if day == 'Friday':
+        days_dict['Friday'] += 1
+    if day == 'Saturday':
+        days_dict['Saturday'] += 1
+    if day == 'Sunday':
+        days_dict['Sunday'] += 1
+print(days_dict)
 
 
 ## Writing data into database
@@ -90,4 +95,13 @@ conn = sqlite3.connect('finalproject.sqlite') #writing sqlite file
 cur = conn.cursor()
 
 cur.execute('DROP TABLE IF EXISTS Posts') #creating Posts table
-cur.execute('CREATE TABLE Posts (story TEXT PRIMARY KEY, created_time DATETIME, message TEXT)')
+cur.execute('CREATE TABLE Posts (story TEXT, created_time DATETIME, message TEXT, day_of_week TEXT)')
+
+for post in post_data['data']:
+    try:
+        post_tup = post['story'], post['created_time'], day_of_week(post)
+        cur.execute('INSERT OR IGNORE INTO Posts (story, created_time, day_of_week) VALUES (?, ?, ?)', post_tup)
+    except:
+        post_tup = post['message'], post['created_time'], day_of_week(post)
+        cur.execute('INSERT OR IGNORE INTO Posts (message, created_time, day_of_week) VALUES (?, ?, ?)', post_tup)
+conn.commit()
