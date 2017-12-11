@@ -5,16 +5,18 @@
 import unittest
 import itertools
 import collections
+import re
 import json
 import sqlite3
 import facebook
-import facebook_info
+import facebookinfo #file containing Facebook access token
 import requests
-# import datetime how to make a datetime into a weekday
+from datetime import datetime #how to make a datetime into a weekday
+import calendar
 
+CACHE_FNAME = "finalproject.json"
 
-CACHE_FNAME = "final_project.json"
-
+## Initializing Caching Setup
 try:
     cache_file = open(CACHE_FNAME,'r') #opens and reads file
     cache_contents = cache_file.read() #converts contents to string
@@ -23,17 +25,18 @@ try:
 except:
     CACHE_DICTION = {}
 
+## Accessing access token from facebookinfo.py
+fb_access_token = facebookinfo.fb_access_token
+fb_user = '/me' #accessing myself as the user
+fb_feature = '/feed' #accessing my timeline as the feature being pulled from Facebook
 
-fb_access_token = facebook_info.fb_access_token
-fb_user = facebook_info.fb_user
-fb_feature = '/feed'
 
-
+## Utilizing Facebook API for social media site
 def get_facebook_info(user):
     fb_url = 'https://graph.facebook.com/v2.11/' + fb_user + fb_feature
     url_params = {}
     url_params['access_token'] = fb_access_token
-    url_params['limit'] = 100
+    url_params['limit'] = 100 #accessing 100 interactions from user timeline
 
     if user in CACHE_DICTION:
         print('Accessing Cached Data') #access cached data if user in dictionary
@@ -48,9 +51,23 @@ def get_facebook_info(user):
         f.close()
         return facebook_results
 
-information = get_facebook_info(fb_user)
-print(information)
+information = get_facebook_info(fb_user) #printing the timeline data in finalproject.json
+# print(information)
 
 
-conn = sqlite3.connect('final_project.sqlite') #writing sqlite file
-cur = conn.cursor()
+## Finding the days the interactions from user timline took place
+for post in information['data']:
+    date = post['created_time']
+    # print(date)
+    match = re.match(r'(\d+\-\d{2}\-\d{2})', date)
+    print(match)
+    if match:
+        date1 = match.group(1)
+        day_of_week = datetime.datetime.strptime(date1, '%Y-%m-%d').strftime('%A')
+        print(int(day_of_week))
+
+
+
+
+# conn = sqlite3.connect('final_project.sqlite') #writing sqlite file
+# cur = conn.cursor()
